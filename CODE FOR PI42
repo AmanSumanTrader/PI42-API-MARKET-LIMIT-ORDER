@@ -1,0 +1,89 @@
+import requests
+import hmac
+import hashlib
+import time
+import json
+api_key = "ENTER API KEY"
+api_secret = "ENETR SECRET KEY"
+base_url = "https://fapi.pi42.com"
+listen_key_url = "https://fapi.pi42.com/v1/retail/listen-key"
+# Helper function to generate a signature
+def generate_signature(api_secret, data_to_sign):
+    return hmac.new(api_secret.encode('utf-8'), data_to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
+# Function to place an order
+def place_order_market():
+    timestamp = str(int(time.time() * 1000))
+    params = {
+        'timestamp': timestamp,
+        'placeType': 'ORDER_FORM',
+        'quantity': 0.030,
+        'side': 'BUY',
+        'symbol': 'ETHINR',
+        'type': 'MARKET',
+        'reduceOnly': False,
+        'marginAsset': 'INR',
+    }
+    data_to_sign = json.dumps(params, separators=(',', ':'))
+    signature = generate_signature(api_secret, data_to_sign)
+    headers = {
+        'api-key': api_key,
+        'signature': signature,
+    }
+    try:
+        response = requests.post(f'{base_url}/v1/order/place-order', json=params, headers=headers)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        response_data = response.json()
+        print('Order placed successfully:', json.dumps(response_data, indent=4))
+    except requests.exceptions.HTTPError as err:
+        print(f"Failed {response.status_code}: {response.text}")
+        
+def place_order_limit():
+    price = input("Enter the price: ")
+    try:
+      amount = int(price)
+    except ValueError:
+      amount = float(price)
+    timestamp = str(int(time.time() * 1000))
+    params = {
+        'timestamp': timestamp,
+        'placeType': 'ORDER_FORM',
+        'quantity': 0.030,
+        'side': 'BUY',
+        'symbol': 'ETHINR',
+        'type': 'LIMIT',
+        'price': amount,
+        'reduceOnly': False,
+        'marginAsset': 'INR',
+    }
+    data_to_sign = json.dumps(params, separators=(',', ':'))
+    signature = generate_signature(api_secret, data_to_sign)
+    headers = {
+        'api-key': api_key,
+        'signature': signature,
+    }
+    try:
+        response = requests.post(f'{base_url}/v1/order/place-order', json=params, headers=headers)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        response_data = response.json()
+        print('Order placed successfully:', json.dumps(response_data, indent=4))
+    except requests.exceptions.HTTPError as err:
+        print(f"Failed {response.status_code}: {response.text}")
+def main():
+    while True:
+        print("\nChoose an option:")
+        print("Press 1 for Market Order ")
+        print("Press 2 for Limit Order ")
+        print("Press 0 Exit")
+        choice = input("\nEnter a number to select an option: ")
+        if choice == "1":
+            place_order_market()
+        if choice == "2":
+            place_order_limit()
+
+        elif choice == "0":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+if __name__ == "__main__":
+    main()
